@@ -13,7 +13,10 @@ export const createJWT = (user) => {
     const token = jwt.sign(
         {
             id: user.id, 
-            username: user.username
+            username: user.username,
+            tokenCreatedAt: new Date(),
+            isValid: true,
+            tokenValidity: 30
         }, 
         process.env.JWT_SECRET
     )
@@ -39,8 +42,20 @@ export const protect = (req, res, next) => {
 
     try {
         const user = jwt.verify(token, process.env.JWT_SECRET)
-        req.user = user
-        next()
+        const currentTime = new Date()
+        const jwtCreatedTime = user.tokenCreatedAt
+        const timeLapsed =  Math.abs(currentTime - new Date(jwtCreatedTime)) / 1000
+        console.log("current time: ", currentTime)
+        console.log("jwt created time: ", jwtCreatedTime)
+        console.log("time lapsed: ", timeLapsed)
+        if (timeLapsed < user.tokenValidity) {
+            req.user = user
+            next()
+        } else {
+            res.status(401)
+            next(new Error("Token expired"))
+        }
+        
     } catch (e) {
         console.error(e)
         res.status(401)
